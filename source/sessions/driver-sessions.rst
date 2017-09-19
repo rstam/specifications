@@ -29,7 +29,7 @@ specifications define various ways in which sessions are used (e.g. causally
 consistent reads, retriable writes, or transactions).
 
 This specification also discusses how drivers participate in distributing the
-cluster time throughout a sharded cluster, a process known as "gossipping the
+cluster time throughout a cluster, a process known as "gossipping the
 cluster time". While gossipping the cluster time is somewhat orthogonal to
 sessions, any driver that implements sessions MUST also implement gossipping
 the cluster time, so it is included in this specification.
@@ -468,7 +468,7 @@ The ``startSession`` server command has the following format:
 
     { startSession : 1, $clusterTime : ... }
 
-The ``$clusterTime`` field should only be sent when connected to a mongos. See the
+The ``$clusterTime`` field should only be sent when gossipping the cluster time. See the
 section "Gossipping the cluster time" for information on ``$clusterTime``.
 
 The server response has the following format:
@@ -503,7 +503,7 @@ The ``endSessions`` server command has the following format:
 
     { endSessions : 1, ids : [ id1, id2, … ], $clusterTime : ... }
 
-The ``$clusterTime`` field should only be sent when connected to a mongos. See the
+The ``$clusterTime`` field should only be sent when gossipping the cluster time. See the
 section of "Gossipping the cluster time" for information on ``$clusterTime``.
 
 The server response has the following format:
@@ -611,20 +611,23 @@ Algorithm to return a ServerSession instance to the server session pool
 Gossipping the cluster time
 ===========================
 
-Drivers MUST gossip the cluster time when connected to sharded clusters through
-mongos nodes.
+Drivers MUST gossip the cluster time when connected to a cluster that uses
+cluster times.
 
 Gossipping the cluster time is a process in which the driver participates in
-distributing the logical cluster time in a sharded cluster. Drivers learn the
-current cluster time (from a particular mongos node's perspective) in responses
-they receive from mongos nodes. Drivers in turn forward the highest cluster
-time they have seen so far to any mongos nodes they subsequently send commands
+distributing the logical cluster time in a cluster. Drivers learn the
+current cluster time (from a particular server's perspective) in responses
+they receive from servers. Drivers in turn forward the highest cluster
+time they have seen so far to any server they subsequently send commands
 to.
+
+A driver detects that it MUST participate in gossipping the cluster time when it sees
+a $clusterTime in a response received from a server.
 
 Receiving the current cluster time
 ----------------------------------
 
-When connected to a mongos, drivers MUST examine all responses to server
+Drivers MUST examine all responses to server
 commands to see if they contain a top level field named ``$clusterTime`` formatted
 as follows:
 
@@ -642,7 +645,7 @@ as follows:
         ...
     }
 
-Whenever a driver receives a cluster time from a mongos it MUST compare it to
+Whenever a driver receives a cluster time from a server it MUST compare it to
 the current highest seen cluster time for the cluster. If the new cluster time
 is higher than the highest seen cluster time it MUST become the new highest
 seen cluster time. Two cluster times are compared using only the BsonTimestamp
@@ -653,7 +656,7 @@ does not participate in the comparison.
 Sending the highest seen cluster time
 -------------------------------------
 
-Whenever a driver sends a command to a mongos node it MUST include the highest
+Whenever a driver sends a command to a server it MUST include the highest
 seen cluster time in a top level field called ``$clusterTime``, in the same format
 as it was received in (but see Gossipping with mixed mongos versions below).
 
@@ -663,8 +666,7 @@ Tracking the highest seen cluster time does not require checking the cluster top
 Drivers do not need to check the cluster topology or the server version they
 are connected to in order to track the highest seen ``$clusterTime``. They simply
 need to check for the presence of the ``$clusterTime`` field in responses received
-from servers. As a performance optimization, drivers MAY choose to skip this
-check when not connected to a mongos.
+from servers.
 
 Gossipping with mixed mongos versions
 -------------------------------------
@@ -788,3 +790,4 @@ Change log
 
 2017-09-13 If causalConsistency option is ommitted assume true
 2017-09-16 Omit session ID when opening and authenticating a connection
+2017-09-18 Drivers MUST gossip the cluster time when they see a $clusterTime
