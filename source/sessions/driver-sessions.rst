@@ -495,19 +495,46 @@ Exceptions to sending the session ID to the server on all commands
 There are some exceptions to the rule that a driver MUST append the session ID to
 every command it sends to the server.
 
+Do not send a session ID while opening and authenticating a connection
+----------------------------------------------------------------------
+
 A driver MUST NOT append a session ID to any command sent during the process of
 opening and authenticating a connection.
 
-A driver MAY omit a session ID in isMaster commands sent solely for the purposes
+Session ID may be omitted from heartbeat commands
+-------------------------------------------------
+
+A driver MAY omit a session ID in commands (such as ismaster) sent solely for the purpose
 of monitoring the state of a deployment.
 
-A driver MAY omit a session ID in ``KILLCURSORS`` commands for two reasons.
-First, killCursors is only ever sent to a particular server, so operation teams
-wouldn't need the lsid for cluster-wide killOp. An admin can manually kill the op with
+Session ID may be omitted from killCursors commands
+---------------------------------------------------
+
+A driver MAY omit a session ID in ``killCursors`` commands for two reasons.
+First, ``killCursors`` is only ever sent to a particular server, so operation teams
+wouldn't need the ``lsid`` for cluster-wide ``killOp``. An admin can manually kill the op with
 its operation id in the case that it is slow. Secondly, some drivers have a background
 cursor reaper to kill cursors that aren't exhausted and closed. Due to GC semantics,
-it can't use the same lsid for killCursors as was used for a cursor's find and getMore,
-so there's no point in using any lsid at all.
+it can't use the same ``lsid`` for killCursors as was used for a cursor's ``find`` and ``getMore``,
+so there's no point in using any ``lsid`` at all.
+
+Do not send a session ID for certain commands for implicit sessions
+-------------------------------------------------------------------
+
+A driver MUST NOT append a session ID to any of the following commands when using
+an implicit session:
+
+* ``ismaster``
+* ``buildInfo``
+* ``ping``
+
+This is for backward compatibility. There exist applications that connect to a
+server only for the purpose of monitoring the health of the server. Currently
+such applications are able to connect to a server with auth enabled and are
+able to run any of those commands *without* authenticating. If we append an
+``lsid`` to such commands the server returns an error because when auth is
+enabled a server session is associated with a user, and the server requires
+that the connection be authenticated so that it can determine the current user.
 
 Server Commands
 ===============
@@ -886,3 +913,6 @@ Change log
 :2017-10-03: startSession and endSessions commands MUST be sent to the admin database
 :2017-10-03: Fix format of endSessions command
 :2017-10-04: Added advanceClusterTime
+:2017-10-05: Added definitions of explicit and implicit sessions
+:2017-10-05: Don't send lsid for certain commands for implicit sessions
+
