@@ -12,7 +12,7 @@ Driver Sessions Specification
 :Status: Accepted (Could be Draft, Accepted, Rejected, Final, or Replaced)
 :Type: Standards
 :Minimum Server Version: 3.6 (The minimum server version this spec applies to)
-:Last Modified: 04-Oct-2017
+:Last Modified: 05-Oct-2017
 
 .. contents::
 
@@ -56,8 +56,16 @@ Deployment
     A set of servers that are all part of a single MongoDB cluster. We avoid the
     word "cluster" because some people interpret "cluster" to mean "sharded cluster".
 
+Explicit session
+    A session that was started explicitly by the application by calling ``startSession`` 
+    and passed as an argument to an operation.
+
 MongoClient
     The root object of a driver's API. MAY be named differently in some drivers.
+
+Implicit session
+    A session that was started implicitly by the driver because the application
+    called an operation without providing an explicit session.
 
 MongoCollection
     The driver object representing a collection and the operations that can be
