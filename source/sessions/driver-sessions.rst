@@ -12,7 +12,7 @@ Driver Sessions Specification
 :Status: Accepted (Could be Draft, Accepted, Rejected, Final, or Replaced)
 :Type: Standards
 :Minimum Server Version: 3.6 (The minimum server version this spec applies to)
-:Last Modified: 06-Oct-2017
+:Last Modified: 09-Oct-2017
 
 .. contents::
 
@@ -227,7 +227,7 @@ Tagging an operation with a session ID is specially useful if a deployment wide
 operation needs to be killed.
 
 Authentication
-~~~~~~~~~~~~~~
+--------------
 
 When using authentication, using a session requires that only a single user be
 authenticated. Drivers that still support authenticating multiple users at once
@@ -521,19 +521,51 @@ Exceptions to sending the session ID to the server on all commands
 There are some exceptions to the rule that a driver MUST append the session ID to
 every command it sends to the server.
 
+When opening and authenticating a connection
+--------------------------------------------
+
 A driver MUST NOT append a session ID to any command sent during the process of
 opening and authenticating a connection.
+
+When monitoring the state of a deployment
+-----------------------------------------
 
 A driver MAY omit a session ID in isMaster commands sent solely for the purposes
 of monitoring the state of a deployment.
 
-A driver MAY omit a session ID in ``KILLCURSORS`` commands for two reasons.
-First, killCursors is only ever sent to a particular server, so operation teams
-wouldn't need the lsid for cluster-wide killOp. An admin can manually kill the op with
+When sending a killCursors command
+----------------------------------
+
+A driver MAY omit a session ID in ``killCursors`` commands for two reasons.
+First, ``killCursors`` is only ever sent to a particular server, so operation teams
+wouldn't need the ``lsid`` for cluster-wide killOp. An admin can manually kill the op with
 its operation id in the case that it is slow. Secondly, some drivers have a background
 cursor reaper to kill cursors that aren't exhausted and closed. Due to GC semantics,
-it can't use the same lsid for killCursors as was used for a cursor's find and getMore,
-so there's no point in using any lsid at all.
+it can't use the same ``lsid`` for ``killCursors`` as was used for a cursor's ``find`` and ``getMore``,
+so there's no point in using any ``lsid`` at all.
+
+When multiple users are authenticated implicit sessions MUST NOT be used
+------------------------------------------------------------------------
+
+The server does not support sessions when multiple users are authenticated.
+This affects how the driver handles explicit and implict sessions.
+
+When an explicit session is used the driver MUST send the session ID as
+explicitly instructed by the application and return the corresponding server
+error. Note that this would normally not be possible, as ``startSession`` would
+return an error in this case. However, if this is possible then the driver MUST
+NOT attempt to detect this and MUST return the error for the server. An example
+of how this might be possible is if only one user was authenticated when
+``startSession`` was called but additional users were authenticated before an
+operation was performed.
+
+The driver MUST NOT send a session ID from an implicit session when multiple
+users are authenticated. If possible the driver MUST NOT start an implicit
+session when multiple users are authenticated. Alternatively, if the driver
+cannot determine whether multiple users are authenticated at the point in time
+that an implicit session is started, then the driver MUST ignore any implicit
+sessions that subsequently end up being used on a connection that has multiple
+users authenticated.
 
 Server Commands
 ===============
@@ -913,3 +945,4 @@ Change log
 :2017-10-03: Fix format of endSessions command
 :2017-10-04: Added advanceClusterTime
 :2017-10-06: Added descriptions of explicit and implicit sessions
+:2017-10-09: Implicit sessions MUST NOT be used when multiple users authenticated
