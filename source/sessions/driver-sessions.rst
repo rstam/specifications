@@ -877,6 +877,31 @@ Test Plan
     sufficient to only test the disposal pattern since that ends up calling
     ``endSession``).
 
+5. Authenticating as multiple users suppresses implicit sessions
+    * Skip this test if your driver does not allow simultaneous authentication with multiple users
+    * Authenticate as two users
+    * Call ``findOne`` with no explicit session
+    * Capture the command sent to the server
+    * Assert that the command sent to the server does not have an ``lsid`` field
+
+Tests that only apply to drivers that allow authentication to be changed on the fly
+-----------------------------------------------------------------------------------
+
+1. Authenticating as a second user after starting a session results in a server error
+    * Authenticate as the first user
+    * Start a session by calling ``startSession``
+    * Authenticate as a second user
+    * Call ``findOne`` using the session as an explicit session
+    * Assert that a server error occured
+
+2. Driver verifies that session is owned by the current user
+    * Authenticate as user A
+    * Start a session by calling ``startSession``
+    * Logout user A
+    * Authenticate as user B
+    * Call ``findOne`` using the session as an explicit session
+    * Assert that the driver returned an error because the session is owned by a different user
+
 Motivation 
 ==========
 
