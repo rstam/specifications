@@ -12,7 +12,7 @@ Driver Sessions Specification
 :Status: Accepted (Could be Draft, Accepted, Rejected, Final, or Replaced)
 :Type: Standards
 :Minimum Server Version: 3.6 (The minimum server version this spec applies to)
-:Last Modified: 09-Oct-2017
+:Last Modified: 17-Oct-2017
 
 .. contents::
 
@@ -544,20 +544,8 @@ cursor reaper to kill cursors that aren't exhausted and closed. Due to GC semant
 it can't use the same ``lsid`` for ``killCursors`` as was used for a cursor's ``find`` and ``getMore``,
 so there's no point in using any ``lsid`` at all.
 
-When multiple users are authenticated implicit sessions MUST NOT be used
-------------------------------------------------------------------------
-
-The server does not support sessions when multiple users are authenticated.
-This affects how the driver handles explicit and implict sessions.
-
-When an explicit session is used the driver MUST send the session ID as
-explicitly instructed by the application and return the corresponding server
-error. Note that this would normally not be possible, as ``startSession`` would
-return an error in this case. However, if this is possible then the driver MUST
-NOT attempt to detect this and MUST return the error for the server. An example
-of how this might be possible is if only one user was authenticated when
-``startSession`` was called but additional users were authenticated before an
-operation was performed.
+When multiple users are authenticated and the session is implicit
+-----------------------------------------------------------------
 
 The driver MUST NOT send a session ID from an implicit session when multiple
 users are authenticated. If possible the driver MUST NOT start an implicit
@@ -892,7 +880,7 @@ Tests that only apply to drivers that allow authentication to be changed on the 
     * Start a session by calling ``startSession``
     * Authenticate as a second user
     * Call ``findOne`` using the session as an explicit session
-    * Assert that a server error occured
+    * Assert that the driver returned an error because multiple users are authenticated
 
 2. Driver verifies that session is owned by the current user
     * Authenticate as user A
@@ -970,4 +958,4 @@ Change log
 :2017-10-03: Fix format of endSessions command
 :2017-10-04: Added advanceClusterTime
 :2017-10-06: Added descriptions of explicit and implicit sessions
-:2017-10-09: Implicit sessions MUST NOT be used when multiple users authenticated
+:2017-10-17: Implicit sessions MUST NOT be used when multiple users authenticated
